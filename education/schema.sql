@@ -1,4 +1,3 @@
-
 -- Users Table
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -54,4 +53,13 @@ CREATE TABLE submissions (
   submitted_at TIMESTAMPTZ DEFAULT NOW(),
   feedback TEXT,
   UNIQUE(assignment_id, student_id)
+);
+
+-- Materials Table
+CREATE TABLE materials (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
+  url VARCHAR(255) NOT NULL,
+  type VARCHAR(50) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
