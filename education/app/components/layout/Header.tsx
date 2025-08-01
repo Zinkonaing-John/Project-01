@@ -1,11 +1,19 @@
+"use client";
+
 import Link from "next/link";
 import { Menu, Plus, LayoutGrid, User } from "lucide-react";
+import { useSidebar } from "./SidebarContext";
 
 export default function Header() {
+  const { toggleSidebar } = useSidebar();
+
   return (
     <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm">
       <div className="flex items-center space-x-3">
-        <button className="text-gray-500 hover:bg-gray-100 p-2 rounded-full transition-colors duration-200">
+        <button 
+          onClick={toggleSidebar}
+          className="text-gray-500 hover:bg-gray-100 p-2 rounded-full transition-colors duration-200"
+        >
           <Menu size={24} />
         </button>
         <Link href="/" className="flex items-center space-x-2">
