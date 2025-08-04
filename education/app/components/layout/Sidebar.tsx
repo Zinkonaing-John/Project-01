@@ -51,7 +51,7 @@ export default function Sidebar() {
             <span>Home</span>
           </Link>
           <Link
-            href="#"
+            href="/dashboard/calendar"
             className="flex items-center space-x-3 p-3 rounded-full hover:bg-gray-100 text-gray-700 transition-colors duration-200"
           >
             <Calendar size={20} />
@@ -62,7 +62,7 @@ export default function Sidebar() {
             className="flex items-center space-x-3 p-3 rounded-full hover:bg-gray-100 text-gray-700 transition-colors duration-200"
           >
             <Gem size={20} />
-            <span>Gemini</span>
+            <span>AI Tools</span>
           </Link>
 
           <div className="pt-4 border-t border-gray-200 mt-4">
@@ -82,32 +82,7 @@ export default function Sidebar() {
             </button>
             {isTeachingOpen && (
               <div className="pl-6 mt-2 space-y-1">
-                <Link
-                  href="#"
-                  className="flex items-center space-x-3 p-3 rounded-full hover:bg-gray-100 text-gray-700 text-sm transition-colors duration-200"
-                >
-                  <ListTodo size={18} />
-                  <span>To review</span>
-                </Link>
-                {/* Placeholder for actual classes */}
-                <Link
-                  href="#"
-                  className="flex items-center space-x-3 p-3 rounded-full hover:bg-gray-100 text-gray-700 text-sm transition-colors duration-200"
-                >
-                  <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold">
-                    Y
-                  </div>
-                  <span>Year 4, T1 21/22</span>
-                </Link>
-                <Link
-                  href="#"
-                  className="flex items-center space-x-3 p-3 rounded-full hover:bg-gray-100 text-gray-700 text-sm transition-colors duration-200"
-                >
-                  <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold">
-                    Y
-                  </div>
-                  <span>Y9 ICT</span>
-                </Link>
+                
               </div>
             )}
           </div>
@@ -129,32 +104,7 @@ export default function Sidebar() {
             </button>
             {isEnrolledOpen && (
               <div className="pl-6 mt-2 space-y-1">
-                <Link
-                  href="#"
-                  className="flex items-center space-x-3 p-3 rounded-full hover:bg-gray-100 text-gray-700 text-sm transition-colors duration-200"
-                >
-                  <ListTodo size={18} />
-                  <span>To-do</span>
-                </Link>
-                {/* Placeholder for actual classes */}
-                <Link
-                  href="#"
-                  className="flex items-center space-x-3 p-3 rounded-full hover:bg-gray-100 text-gray-700 text-sm transition-colors duration-200"
-                >
-                  <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold">
-                    Y
-                  </div>
-                  <span>Y5 -Scratch (Creating Games)</span>
-                </Link>
-                <Link
-                  href="#"
-                  className="flex items-center space-x-3 p-3 rounded-full hover:bg-gray-100 text-gray-700 text-sm transition-colors duration-200"
-                >
-                  <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold">
-                    Y
-                  </div>
-                  <span>Y8 ICT</span>
-                </Link>
+                
               </div>
             )}
           </div>

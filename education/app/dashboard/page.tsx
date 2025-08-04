@@ -79,7 +79,7 @@ export default function DashboardPage() {
       )
       .eq("teacher_id", userId);
 
-    // Fetch classes where user is enrolled as student
+
     const { data: studentClasses, error: studentError } = await supabase
       .from("enrollments")
       .select(
