@@ -10,13 +10,72 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSidebar } from "./SidebarContext";
+import { supabase } from "../../../lib/supabase";
+import { User } from "@supabase/supabase-js";
 
 export default function Sidebar() {
   const [isTeachingOpen, setIsTeachingOpen] = useState(true);
   const [isEnrolledOpen, setIsEnrolledOpen] = useState(true);
   const { isSidebarOpen, closeSidebar } = useSidebar();
+  const [user, setUser] = useState<User | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [teacherClasses, setTeacherClasses] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchUserAndClasses = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+
+      if (user) {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('id, role')
+          .eq('auth_id', user.id)
+          .single();
+
+        if (userError) {
+          console.error('Error fetching user role:', userError);
+          return;
+        }
+
+        setUserRole(userData.role);
+
+        if (userData.role === 'teacher') {
+          const { data: classesData, error: classesError } = await supabase
+            .from('classes')
+            .select('id, name')
+            .eq('teacher_id', userData.id);
+
+          if (classesError) {
+            console.error('Error fetching teacher classes:', classesError);
+            return;
+          }
+          setTeacherClasses(classesData);
+        }
+      }
+    };
+
+    fetchUserAndClasses();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (session?.user) {
+          setUser(session.user);
+          fetchUserAndClasses(); // Re-fetch on auth state change
+        } else {
+          setUser(null);
+          setUserRole(null);
+          setTeacherClasses([]);
+        }
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
 
   return (
     <>
@@ -44,7 +103,7 @@ export default function Sidebar() {
       >
         <nav className="space-y-1">
           <Link
-            href="/"
+            href="/dashboard"
             className="flex items-center space-x-3 p-3 rounded-full bg-blue-100 text-blue-700 font-semibold transition-colors duration-200"
           >
             <Home size={20} />
@@ -80,9 +139,18 @@ export default function Sidebar() {
                 <ChevronDown size={20} />
               )}
             </button>
-            {isTeachingOpen && (
+            {isTeachingOpen && userRole === 'teacher' && (
               <div className="pl-6 mt-2 space-y-1">
-                
+                {teacherClasses.map((cls) => (
+                  <Link
+                    key={cls.id}
+                    href={`/dashboard/class/${cls.id}`}
+                    className="flex items-center space-x-3 p-3 rounded-full hover:bg-gray-100 text-gray-700 transition-colors duration-200"
+                    onClick={closeSidebar}
+                  >
+                    <span>{cls.name}</span>
+                  </Link>
+                ))}
               </div>
             )}
           </div>
