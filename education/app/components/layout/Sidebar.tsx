@@ -14,6 +14,7 @@ import { useState, useEffect } from "react";
 import { useSidebar } from "./SidebarContext";
 import { supabase } from "../../../lib/supabase";
 import { User } from "@supabase/supabase-js";
+import { usePathname } from "next/navigation";
 
 export default function Sidebar() {
   const [isTeachingOpen, setIsTeachingOpen] = useState(true);
@@ -22,9 +23,17 @@ export default function Sidebar() {
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [teacherClasses, setTeacherClasses] = useState<any[]>([]);
+  const [loadingClasses, setLoadingClasses] = useState(true);
+  const pathname = usePathname();
+
+  const getLinkClassName = (href: string) => {
+    const isActive = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
+    return `flex items-center space-x-3 p-3 rounded-full font-semibold transition-colors duration-200 ${isActive ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100 text-gray-700"}`;
+  };
 
   useEffect(() => {
     const fetchUserAndClasses = async () => {
+      setLoadingClasses(true);
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
 
@@ -37,6 +46,9 @@ export default function Sidebar() {
 
         if (userError) {
           console.error('Error fetching user role:', userError);
+          setUserRole(null);
+          setTeacherClasses([]);
+          setLoadingClasses(false);
           return;
         }
 
@@ -50,11 +62,19 @@ export default function Sidebar() {
 
           if (classesError) {
             console.error('Error fetching teacher classes:', classesError);
+            setTeacherClasses([]);
+            setLoadingClasses(false);
             return;
           }
           setTeacherClasses(classesData);
+        } else {
+          setTeacherClasses([]);
         }
+      } else {
+        setUserRole(null);
+        setTeacherClasses([]);
       }
+      setLoadingClasses(false);
     };
 
     fetchUserAndClasses();
@@ -68,6 +88,7 @@ export default function Sidebar() {
           setUser(null);
           setUserRole(null);
           setTeacherClasses([]);
+          setLoadingClasses(false);
         }
       }
     );
@@ -90,35 +111,35 @@ export default function Sidebar() {
       {/* Sidebar */}
       <aside
         className={`
-          fixed lg:static inset-y-0 left-0 z-50
+          fixed top-[64px] bottom-0 left-0 z-50
           w-64 bg-white border-r border-gray-200 p-4 
           flex flex-col overflow-y-auto custom-scrollbar
           transform transition-transform duration-300 ease-in-out
           ${
             isSidebarOpen
               ? "translate-x-0"
-              : "-translate-x-full lg:translate-x-0"
+              : "-translate-x-full"
           }
         `}
       >
         <nav className="space-y-1">
           <Link
             href="/dashboard"
-            className="flex items-center space-x-3 p-3 rounded-full bg-blue-100 text-blue-700 font-semibold transition-colors duration-200"
+            className={getLinkClassName("/dashboard")}
           >
             <Home size={20} />
             <span>Home</span>
           </Link>
           <Link
             href="/dashboard/calendar"
-            className="flex items-center space-x-3 p-3 rounded-full hover:bg-gray-100 text-gray-700 transition-colors duration-200"
+            className={getLinkClassName("/dashboard/calendar")}
           >
             <Calendar size={20} />
             <span>Calendar</span>
           </Link>
           <Link
-            href="#"
-            className="flex items-center space-x-3 p-3 rounded-full hover:bg-gray-100 text-gray-700 transition-colors duration-200"
+            href="/dashboard/ai-tools"
+            className={getLinkClassName("/dashboard/ai-tools")}
           >
             <Gem size={20} />
             <span>AI Tools</span>
@@ -139,18 +160,28 @@ export default function Sidebar() {
                 <ChevronDown size={20} />
               )}
             </button>
-            {isTeachingOpen && userRole === 'teacher' && (
+            {isTeachingOpen && (
               <div className="pl-6 mt-2 space-y-1">
-                {teacherClasses.map((cls) => (
-                  <Link
-                    key={cls.id}
-                    href={`/dashboard/class/${cls.id}`}
-                    className="flex items-center space-x-3 p-3 rounded-full hover:bg-gray-100 text-gray-700 transition-colors duration-200"
-                    onClick={closeSidebar}
-                  >
-                    <span>{cls.name}</span>
-                  </Link>
-                ))}
+                {loadingClasses ? (
+                  <p className="text-gray-500">Loading classes...</p>
+                ) : userRole === 'teacher' ? (
+                  teacherClasses.length > 0 ? (
+                    teacherClasses.map((cls) => (
+                      <Link
+                        key={cls.id}
+                        href={`/dashboard/class/${cls.id}`}
+                        className={getLinkClassName(`/dashboard/class/${cls.id}`)}
+                        onClick={closeSidebar}
+                      >
+                        <span>{cls.name}</span>
+                      </Link>
+                    ))
+                  ) : (
+                    <p className="text-gray-500 text-sm">No classes created.</p>
+                  )
+                ) : (
+                  <p className="text-gray-500 text-sm">Not applicable for your role.</p>
+                )}
               </div>
             )}
           </div>

@@ -7,17 +7,34 @@ import { Button } from "../../components/ui/button";
 import { Label } from "../../components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../components/ui/select";
 
-interface AddTodoFormProps {
+interface EditDeleteTodoFormProps {
+  todoId: string;
   onClose: () => void;
-  onTodoAdded: () => void;
+  onTodoUpdated: () => void;
+  onTodoDeleted: () => void;
 }
 
 interface Class {
-  id: string; // Changed to string to match UUID
+  id: string;
   name: string;
 }
 
-export default function AddTodoForm({ onClose, onTodoAdded }: AddTodoFormProps) {
+interface Todo {
+  id: string;
+  title: string;
+  description: string | null;
+  due_date: string;
+  status: string;
+  class_id: string | null;
+}
+
+export default function EditDeleteTodoForm({
+  todoId,
+  onClose,
+  onTodoUpdated,
+  onTodoDeleted,
+}: EditDeleteTodoFormProps) {
+  const [todo, setTodo] = useState<Todo | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -25,7 +42,8 @@ export default function AddTodoForm({ onClose, onTodoAdded }: AddTodoFormProps) 
   const [status, setStatus] = useState("normal");
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [classes, setClasses] = useState<Class[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<{
     title?: string;
@@ -34,20 +52,46 @@ export default function AddTodoForm({ onClose, onTodoAdded }: AddTodoFormProps) 
   }>({});
 
   useEffect(() => {
-    const fetchClasses = async () => {
-      const { data, error } = await supabase.from("classes").select("id, name");
-      if (error) {
-        console.error("Error fetching classes:", error);
-        setError("Failed to load classes. Please try again.");
-      } else {
-        setClasses(data);
-        if (data.length > 0) {
-          setSelectedClass(data[0].id);
+    const fetchTodoAndClasses = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Fetch todo details
+        const { data: todoData, error: todoError } = await supabase
+          .from("todos")
+          .select("id, title, description, due_date, status, class_id")
+          .eq("id", todoId)
+          .single();
+
+        if (todoError) {
+          throw todoError;
         }
+        setTodo(todoData);
+        setTitle(todoData.title);
+        setDescription(todoData.description || "");
+        setDueDate(todoData.due_date.split("T")[0]);
+        setDueTime(todoData.due_date.split("T")[1]?.substring(0, 5) || "");
+        setStatus(todoData.status);
+        setSelectedClass(todoData.class_id);
+
+        // Fetch classes
+        const { data: classesData, error: classesError } = await supabase
+          .from("classes")
+          .select("id, name");
+
+        if (classesError) {
+          throw classesError;
+        }
+        setClasses(classesData);
+      } catch (err: any) {
+        console.error("Error fetching data:", err);
+        setError(err.message || "Failed to load data.");
+      } finally {
+        setLoading(false);
       }
     };
-    fetchClasses();
-  }, []);
+    fetchTodoAndClasses();
+  }, [todoId]);
 
   const validateForm = () => {
     const errors: typeof validationErrors = {};
@@ -64,18 +108,7 @@ export default function AddTodoForm({ onClose, onTodoAdded }: AddTodoFormProps) 
     return Object.keys(errors).length === 0;
   };
 
-  const resetForm = () => {
-    setTitle("");
-    setDescription("");
-    setDueDate("");
-    setDueTime("");
-    setStatus("normal");
-    setSelectedClass(classes.length > 0 ? classes[0].id : null);
-    setValidationErrors({});
-    setError(null);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -83,39 +116,94 @@ export default function AddTodoForm({ onClose, onTodoAdded }: AddTodoFormProps) 
       return;
     }
 
-    setLoading(true);
+    setSubmitting(true);
 
     try {
       const combinedDateTime = dueDate && dueTime ? `${dueDate}T${dueTime}:00` : null;
 
-      const { error: insertError } = await supabase.from("todos").insert({
-        title,
-        description,
-        due_date: combinedDateTime,
-        status,
-        class_id: selectedClass,
-      });
+      const { error: updateError } = await supabase
+        .from("todos")
+        .update({
+          title,
+          description,
+          due_date: combinedDateTime,
+          status,
+          class_id: selectedClass,
+        })
+        .eq("id", todoId);
 
-      if (insertError) {
-        throw insertError;
+      if (updateError) {
+        throw updateError;
       }
 
-      onTodoAdded();
-      resetForm();
+      onTodoUpdated();
       onClose();
     } catch (err: any) {
-      console.error("Submission error:", err);
-      setError(err.message || "An unexpected error occurred.");
+      console.error("Update error:", err);
+      setError(err.message || "An unexpected error occurred during update.");
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
+
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to delete this To Do?")) {
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const { error: deleteError } = await supabase
+        .from("todos")
+        .delete()
+        .eq("id", todoId);
+
+      if (deleteError) {
+        throw deleteError;
+      }
+
+      onTodoDeleted();
+      onClose();
+    } catch (err: any) {
+      console.error("Delete error:", err);
+      setError(err.message || "An unexpected error occurred during delete.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md text-center">
+          Loading To Do details...
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !todo) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md text-center text-red-500">
+          {error}
+          <Button onClick={onClose} className="mt-4">Close</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!todo) {
+    return null; // Should not happen if error is handled
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-        <h2 className="text-xl font-bold mb-4">Add New To Do</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <h2 className="text-xl font-bold mb-4">Edit/Delete To Do</h2>
+        <form onSubmit={handleUpdate} className="space-y-4">
           <div>
             <Label htmlFor="title">Title</Label>
             <Input
@@ -216,12 +304,20 @@ export default function AddTodoForm({ onClose, onTodoAdded }: AddTodoFormProps) 
             </Select>
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end space-x-2 mt-6">
             <Button type="button" onClick={onClose} variant="outline">
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Adding..." : "Add To Do"}
+            <Button type="submit" disabled={submitting}>
+              {submitting ? "Updating..." : "Update To Do"}
+            </Button>
+            <Button
+              type="button"
+              onClick={handleDelete}
+              variant="destructive"
+              disabled={submitting}
+            >
+              {submitting ? "Deleting..." : "Delete To Do"}
             </Button>
           </div>
         </form>

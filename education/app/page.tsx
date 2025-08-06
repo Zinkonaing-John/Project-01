@@ -17,23 +17,49 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation"; // Import useRouter
 
 export default function LandingPage() {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter(); // Initialize useRouter
 
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setLoading(false);
+    console.log("useEffect: Starting session check...");
+
+    const handleAuthStateChange = (event: string, session: any) => {
+      console.log("Auth state changed inside handler:", { event, session, user: session?.user });
+      setSession(session);
+      setLoading(false);
+      if (session) {
+        router.push("/dashboard"); // Redirect if session exists
       }
+    };
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      handleAuthStateChange
     );
 
+    // Initial check in case onAuthStateChange doesn't fire immediately
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("Initial session check result:", { session, user: session?.user });
+      setSession(session);
+      setLoading(false);
+      if (session) {
+        router.push("/dashboard"); // Redirect if session exists
+      }
+    }).catch(error => {
+      console.error("Error during initial session check:", error);
+      setLoading(false);
+    });
+
     return () => {
+      console.log("useEffect: Cleaning up auth listener.");
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [router]); // Add router to dependency array
+
+  console.log("Render state:", { loading, session });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100">
@@ -47,7 +73,12 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              {!loading && !session ? (
+              {loading ? (
+                <div className="flex items-center space-x-4">
+                  <div className="w-16 h-8 bg-gray-200 rounded-md animate-pulse"></div>
+                  <div className="w-24 h-8 bg-gray-200 rounded-lg animate-pulse"></div>
+                </div>
+              ) : !session ? (
                 <>
                   <Link
                     href="/auth/login"
@@ -62,14 +93,14 @@ export default function LandingPage() {
                     Get Started
                   </Link>
                 </>
-              ) : !loading && session ? (
+              ) : (
                 <Link
                   href="/dashboard"
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                 >
                   Go to Dashboard
                 </Link>
-              ) : null}
+              )}
             </div>
           </div>
         </div>
@@ -94,7 +125,12 @@ export default function LandingPage() {
               classroom.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              {!loading && !session ? (
+              {loading ? (
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="w-48 h-12 bg-gray-200 rounded-xl animate-pulse"></div>
+                  <div className="w-40 h-12 bg-gray-200 rounded-xl animate-pulse"></div>
+                </div>
+              ) : !session ? (
                 <>
                   <Link
                     href="/auth/signup"
@@ -112,7 +148,7 @@ export default function LandingPage() {
                     Sign In
                   </Link>
                 </>
-              ) : !loading && session ? (
+              ) : (
                 <Link
                   href="/dashboard"
                   className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
@@ -121,7 +157,7 @@ export default function LandingPage() {
                   Go to Dashboard
                   <ArrowRight className="w-5 h-5" />
                 </Link>
-              ) : null}
+              )}
             </div>
           </div>
         </div>
@@ -328,7 +364,12 @@ export default function LandingPage() {
             create better learning experiences.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            {!loading && !session ? (
+            {loading ? (
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="w-48 h-12 bg-gray-200 rounded-xl animate-pulse"></div>
+                <div className="w-40 h-12 bg-gray-200 rounded-xl animate-pulse"></div>
+              </div>
+            ) : !session ? (
               <>
                 <Link
                   href="/auth/signup"
@@ -346,7 +387,7 @@ export default function LandingPage() {
                   Sign In
                 </Link>
               </>
-            ) : !loading && session ? (
+            ) : (
               <Link
                 href="/dashboard"
                 className="inline-flex items-center gap-3 px-8 py-4 bg-white text-blue-600 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
@@ -355,7 +396,7 @@ export default function LandingPage() {
                 Go to Dashboard
                 <ArrowRight className="w-5 h-5" />
               </Link>
-            ) : null}
+            )}
           </div>
         </div>
       </section>

@@ -9,14 +9,15 @@ import { supabase } from "../../../lib/supabase";
 
 interface FullCalendarComponentProps {
   classId: string | null;
+  onEventClick: (todoId: string) => void; // Add onEventClick prop
 }
 
 const FullCalendarComponent = forwardRef(
-  ({ classId }: FullCalendarComponentProps, ref) => {
+  ({ classId, onEventClick }: FullCalendarComponentProps, ref) => {
   const [events, setEvents] = useState([]);
 
   const fetchTodos = async () => {
-      let query = supabase.from("todos").select("title, due_date, status");
+      let query = supabase.from("todos").select("id, title, due_date, status"); // Select id as well
 
       if (classId) {
         query = query.eq("class_id", classId);
@@ -31,6 +32,7 @@ const FullCalendarComponent = forwardRef(
 
     if (data) {
       const formattedEvents = data.map((todo) => ({
+        id: todo.id, // Map id to event object
         title: todo.title,
         date: todo.due_date,
         backgroundColor: getStatusColor(todo.status),
@@ -47,7 +49,7 @@ const FullCalendarComponent = forwardRef(
 
   useEffect(() => {
     fetchTodos();
-  }, []);
+  }, [classId]); // Add classId to dependency array to refetch when filter changes
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -71,6 +73,7 @@ const FullCalendarComponent = forwardRef(
         right: "dayGridMonth,timeGridWeek,listWeek",
       }}
       events={events}
+      eventClick={(info) => onEventClick(info.event.id)} // Handle event click
     />
   );
 });

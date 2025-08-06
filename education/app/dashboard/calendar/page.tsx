@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import FullCalendar from "./FullCalendar";
 import AddTodoForm from "./AddTodoForm";
+import EditDeleteTodoForm from "./EditDeleteTodoForm"; // Import the new component
 import { Button } from "../../components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../components/ui/select";
 import { Label } from "../../components/ui/label";
@@ -15,6 +16,7 @@ interface Class {
 
 export default function CalendarPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingTodoId, setEditingTodoId] = useState<string | null>(null); // New state for editing
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [classes, setClasses] = useState<Class[]>([]);
   const calendarRef = useRef<any>(null);
@@ -40,8 +42,26 @@ export default function CalendarPage() {
     }
   };
 
+  const handleTodoUpdated = () => {
+    if (calendarRef.current) {
+      calendarRef.current.refetchEvents();
+    }
+    setEditingTodoId(null); // Close edit form after update
+  };
+
+  const handleTodoDeleted = () => {
+    if (calendarRef.current) {
+      calendarRef.current.refetchEvents();
+    }
+    setEditingTodoId(null); // Close edit form after delete
+  };
+
+  const handleEventClick = (todoId: string) => {
+    setEditingTodoId(todoId);
+  };
+
   return (
-    <div className="container mx-auto p-4">
+    <div className="w-full p-4">
       <h1 className="text-2xl font-bold mb-4">Calendar</h1>
       <div className="flex items-center space-x-4 mb-4">
         <Button onClick={() => setIsFormOpen(true)}>
@@ -69,11 +89,19 @@ export default function CalendarPage() {
           </Select>
         </div>
       </div>
-      <FullCalendar ref={calendarRef} classId={selectedClassId} />
+      <FullCalendar ref={calendarRef} classId={selectedClassId} onEventClick={handleEventClick} />
       {isFormOpen && (
         <AddTodoForm
           onClose={() => setIsFormOpen(false)}
           onTodoAdded={handleTodoAdded}
+        />
+      )}
+      {editingTodoId && (
+        <EditDeleteTodoForm
+          todoId={editingTodoId}
+          onClose={() => setEditingTodoId(null)}
+          onTodoUpdated={handleTodoUpdated}
+          onTodoDeleted={handleTodoDeleted}
         />
       )}
     </div>
